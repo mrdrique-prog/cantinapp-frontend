@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx v2
 import { useEffect, useState } from 'react'
 import { useStore } from './store/useStore'
 import { db, seedDemoData } from './db/database'
