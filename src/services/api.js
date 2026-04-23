@@ -12,7 +12,7 @@ class ApiClient {
     try {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001'
       const res = await fetch(`${apiBase}/health`, {
-        signal: AbortSignal.timeout(5000)
+        signal: AbortSignal.timeout(6000)
       })
       this.online = res.ok
     } catch {
