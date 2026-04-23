@@ -96,12 +96,12 @@ export default function App() {
       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif"
     }}>
       {modoBackend && (
-        <div style={{ background: '#2E7D32', color: 'rgba(255,255,255,0.9)', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 600 }}>
+        <div style={{ background: '#2E7D32', color: 'rgba(255,255,255,0.9)', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 6000 }}>
           🟢 CantinApp ADEMJI — {usuario?.nome}
         </div>
       )}
       {!modoBackend && (
-        <div style={{ background: '#FFF8E1', color: '#F57F17', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 600 }}>
+        <div style={{ background: '#FFF8E1', color: '#F57F17', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 6000 }}>
           📱 Modo offline — dados salvos localmente
         </div>
       )}
