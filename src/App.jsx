@@ -1,11 +1,10 @@
-h// src/App.jsx
+// src/App.jsx
 import { useEffect, useState } from 'react'
 import { useStore } from './store/useStore'
 import { db, seedDemoData } from './db/database'
 import { Toast } from './components/UI'
 import { api } from './services/api'
 import Login from './pages/Login'
-
 import Dashboard from './pages/Dashboard'
 import NovaVenda from './pages/NovaVenda'
 import Domingos, { EditarDomingo } from './pages/Domingos'
@@ -44,10 +43,16 @@ export default function App() {
   const [usuario, setUsuario] = useState(null)
   const [modoBackend, setModoBackend] = useState(false)
   const [verificando, setVerificando] = useState(true)
+  const [segundos, setSegundos] = useState(0)
 
   useEffect(() => {
+    const intervalo = setInterval(() => {
+      setSegundos(s => s + 1)
+    }, 1000)
+
     async function inicializar() {
       const backendOnline = await api.checkOnline()
+      clearInterval(intervalo)
       setModoBackend(backendOnline)
 
       if (backendOnline) {
@@ -55,40 +60,67 @@ export default function App() {
         if (token) {
           try { setUsuario(await api.getMe()) } catch { api.setToken(null) }
         }
-      } else {
-             }
+      }
       setVerificando(false)
     }
+
     inicializar()
+    return () => clearInterval(intervalo)
   }, [])
 
-  if (verificando) return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(160deg, #1B5E20 0%, #2E7D32 100%)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: '16px'
-    }}>
-      <div style={{ fontSize: '56px' }}>⛪</div>
-      <div style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>CantinApp</div>
-      <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>ADEMJI</div>
-      <div style={{ marginTop: '16px', display: 'flex', gap: '6px' }}>
-        {[0,1,2].map(i => (
-          <div key={i} style={{
-            width: '8px', height: '8px', borderRadius: '50%',
-            background: 'rgba(255,255,255,0.5)',
-            animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`
-          }} />
-        ))}
+  if (verificando) {
+    const acordando = segundos >= 6
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(160deg, #1B5E20 0%, #2E7D32 100%)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: '16px'
+      }}>
+        <div style={{ fontSize: '56px' }}>&#x26EA;</div>
+        <div style={{ fontSize: '24px', fontWeight: 800, color: 'white' }}>CantinApp</div>
+        <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>ADEMJI</div>
+
+        <div style={{ marginTop: '16px', display: 'flex', gap: '6px' }}>
+          {[0,1,2].map(i => (
+            <div key={i} style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.5)',
+              animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`
+            }} />
+          ))}
+        </div>
+
+        {acordando && (
+          <div style={{
+            marginTop: '8px',
+            background: 'rgba(255,255,255,0.15)',
+            borderRadius: '12px',
+            padding: '12px 20px',
+            textAlign: 'center',
+            maxWidth: '280px'
+          }}>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', fontWeight: 600 }}>
+              Acordando o servidor...
+            </div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)', marginTop: '4px' }}>
+              Isso pode levar ate 1 minuto na primeira vez. Aguarde.
+            </div>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', marginTop: '8px', fontWeight: 700 }}>
+              {segundos}s
+            </div>
+          </div>
+        )}
+
+        <style>{`@keyframes pulse { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }`}</style>
       </div>
-      <style>{`@keyframes pulse { 0%,80%,100%{opacity:0.3} 40%{opacity:1} }`}</style>
-    </div>
-  )
+    )
+  }
 
   if (modoBackend && !usuario) return (<><Login onLogin={setUsuario} /><Toast /></>)
 
   const Tela = TELAS[tela] || Dashboard
-
   return (
     <div style={{
       maxWidth: '480px', margin: '0 auto',
@@ -96,13 +128,13 @@ export default function App() {
       fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif"
     }}>
       {modoBackend && (
-        <div style={{ background: '#2E7D32', color: 'rgba(255,255,255,0.9)', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 6000 }}>
-          🟢 CantinApp ADEMJI — {usuario?.nome}
+        <div style={{ background: '#2E7D32', color: 'rgba(255,255,255,0.9)', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 600 }}>
+          CantinApp ADEMJI -- {usuario?.nome}
         </div>
       )}
       {!modoBackend && (
-        <div style={{ background: '#FFF8E1', color: '#F57F17', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 6000 }}>
-          📱 Modo offline — dados salvos localmente
+        <div style={{ background: '#FFF8E1', color: '#F57F17', fontSize: '11px', textAlign: 'center', padding: '5px', fontWeight: 600 }}>
+          Modo offline -- dados salvos localmente
         </div>
       )}
       <Tela />
