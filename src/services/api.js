@@ -11,8 +11,10 @@ class ApiClient {
   async checkOnline() {
     try {
       const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      // Render free tier pode demorar até ~50s para acordar do hibernation
+      // Usamos 65s de timeout para garantir que ele acorde
       const res = await fetch(`${apiBase}/health`, {
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(65000)
       })
       this.online = res.ok
     } catch {
@@ -49,8 +51,10 @@ class ApiClient {
     this.setToken(data.token)
     return data
   }
+
   logout()  { this.setToken(null) }
   getMe()   { return this.get('/auth/me') }
+
   getPessoas()                 { return this.get('/pessoas') }
   getDashboard()               { return this.get('/relatorios/dashboard') }
   getDevedores()               { return this.get('/relatorios/devedores') }
@@ -58,7 +62,5 @@ class ApiClient {
 }
 
 export const api = new ApiClient()
-
-// URL base da API para uso direto nos componentes
 export const API_URL = BASE_URL
 export function getToken() { return localStorage.getItem('cantinapp_token') }
