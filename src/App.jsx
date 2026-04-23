@@ -1,4 +1,4 @@
-// src/App.jsx
+h// src/App.jsx
 import { useEffect, useState } from 'react'
 import { useStore } from './store/useStore'
 import { db, seedDemoData } from './db/database'
@@ -56,9 +56,7 @@ export default function App() {
           try { setUsuario(await api.getMe()) } catch { api.setToken(null) }
         }
       } else {
-        await seedDemoData()
-        setUsuario({ nome: 'Usuário Local', perfil: 'ADMIN' })
-      }
+             }
       setVerificando(false)
     }
     inicializar()
