@@ -5,7 +5,7 @@ import { TopBar, Avatar, avatarCor, formatMoeda, SectionTitle, BtnPrimario } fro
 import { format, subMonths } from 'date-fns'
 import { getConfig } from './Configuracoes'
 
-const API = 'http://localhost:3001/api'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api'
 function getToken() { return localStorage.getItem('cantinapp_token') }
 async function apiGet(path) {
   const res = await fetch(API + path, { headers: { 'Authorization': `Bearer ${getToken()}` } })
