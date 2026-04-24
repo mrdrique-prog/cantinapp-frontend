@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore'
 import { usePessoas, salvarPessoa } from '../hooks/useData'
 import { TopBar, Avatar, avatarCor, BtnPrimario, SectionTitle } from '../components/UI'
 
-const API = 'http://localhost:3001/api'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api'
 
 function getToken() { return localStorage.getItem('cantinapp_token') }
 
