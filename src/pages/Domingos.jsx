@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore'
 import { TopBar, BtnPrimario, BtnOutline, SectionTitle, formatMoeda, formatData } from '../components/UI'
 import { format } from 'date-fns'
 
-const API = 'http://localhost:3001/api'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api'
 function getToken() { return localStorage.getItem('cantinapp_token') }
 async function apiGet(path) {
   const res = await fetch(API + path, { headers: { 'Authorization': `Bearer ${getToken()}` } })
