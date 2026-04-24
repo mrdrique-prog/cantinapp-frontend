@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore'
 import { TopBar, Avatar, avatarCor, formatMoeda, formatData, BtnPrimario, SectionTitle } from '../components/UI'
 import { SenhaModal } from '../components/SenhaModal'
 
-const API = 'http://localhost:3001/api'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api'
 function getToken() { return localStorage.getItem('cantinapp_token') }
 async function apiGet(path) {
   const res = await fetch(API + path, { headers: { 'Authorization': `Bearer ${getToken()}` } })
