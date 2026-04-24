@@ -70,31 +70,24 @@ export function Cobranca() {
   const jaCobramos = new Set(cobranças.map(c => c.pessoaId))
 
   const gerarMensagem = (pessoa) => {
-    const ext = extratos[pessoa.id] || []
-    const compras = ext.filter(e => e.tipo === 'compra')
-    const config = getConfig()
+  const ext = extratos[pessoa.id] || []
+  const compras = ext.filter(e => e.tipo === 'compra')
 
-    let linhasCompras = ''
-    if (compras.length > 0) {
-      linhasCompras = '\n📋 *Detalhes do seu consumo:*\n'
-      compras.forEach(c => {
-        linhasCompras += `• ${formatData(c.data)} → ${c.desc}: *${formatMoeda(Math.abs(c.valor))}*\n`
-      })
-    }
-
-    let pixInfo = ''
-    if (config.pixChave) {
-      pixInfo = `\n💳 *Para pagar via PIX:*\n🔑 Chave (${config.pixTipo}): *${config.pixChave}*\n👤 Nome: ${config.pixNome || config.igrejaNome}\n`
-    }
-
-    let comprovante = ''
-    if (config.tesourceiroTelefone) {
-      comprovante = `\n📎 Após o pagamento, envie o comprovante para este número pelo WhatsApp.\n`
-    }
-
-    return `Olá, *${pessoa.nome}*! Tudo bem? 😊\n\nEsperamos que tenha sido abençoado(a) pelo culto de hoje!\n${linhasCompras}\n💰 *Total em aberto: ${formatMoeda(pessoa.saldo)}*\n${pixInfo}${comprovante}\n${config.mensagemRodape || 'Obrigado pelo seu apoio! 🙏'}\n— ${config.igrejaNome || 'Cantina da Igreja'}`
+  let linhasCompras = ''
+  if (compras.length > 0) {
+    linhasCompras = '\n📋 *Detalhamento:*\n'
+    compras.forEach(c => {
+      linhasCompras += `• ${formatData(c.data)} → ${c.desc}: *${formatMoeda(Math.abs(c.valor))}*\n`
+    })
   }
 
+  let pixInfo = ''
+  if (config.pixChave) {
+    pixInfo = `\n💳 *Para pagar via PIX:*\n🔑 Chave (${config.pixTipo}): *${config.pixChave}*\n👤 Nome: ${config.pixNome || config.igrejaNome}\n`
+  }
+
+  return `A paz do Senhor, *${pessoa.nome}*! 🙏\n\nPassando para informar que há um valor em aberto referente à cantina:${linhasCompras}\n💰 *Total em aberto: ${formatMoeda(pessoa.saldo)}*\n${pixInfo}\n⚠️ *Aviso de segurança:* Não enviamos cobranças nem solicitações de pagamento via PIX por mensagem. Em caso de dúvida, confirme pessoalmente com a Pastora Neide ou Henrique.\n\nObrigado pelo seu apoio à nossa cantina! 🙏\n— ${config.igrejaNome || 'Cantina ADEMJI'}`
+}
   const abrirWhatsApp = async (pessoa) => {
     if (!extratos[pessoa.id]) {
       const ext = await apiGet(`/pessoas/${pessoa.id}/extrato`)
