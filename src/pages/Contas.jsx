@@ -18,32 +18,41 @@ async function apiPost(path, body) {
   })
   return res.json()
 }
+async function apiDelete(path) {
+  const res = await fetch(API + path, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${getToken()}` }
+  })
+  return res.json()
+}
 
-export function Contas() {
+export function Contas({ onBack }) {
   const { ir } = useStore()
-  const [devedores, setDevedores] = useState([])
+  const [pessoas, setPessoas] = useState([])
   const [busca, setBusca] = useState('')
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
-    apiGet('/relatorios/devedores').then(data => { setDevedores(Array.isArray(data) ? data : []); setCarregando(false) })
+    apiGet('/relatorios/devedores').then(d => {
+      setPessoas(Array.isArray(d) ? d : [])
+      setCarregando(false)
+    })
   }, [])
 
-  const filtrados = devedores.filter(p => p.nome.toLowerCase().includes(busca.toLowerCase()))
-  const total = filtrados.reduce((s, p) => s + p.saldo, 0)
+  const filtrados = pessoas.filter(p =>
+    p.nome.toLowerCase().includes(busca.toLowerCase())
+  )
 
   return (
     <>
-      <TopBar titulo="Contas em Aberto" acoes={
-        <span style={{ background: '#FFCDD2', color: '#D32F2F', borderRadius: '20px', padding: '3px 10px', fontSize: '12px', fontWeight: 700 }}>
-          {formatMoeda(total)}
-        </span>
-      } />
+      <TopBar titulo="Contas em Aberto" onBack={onBack}
+        direita={<span style={{ background: '#D32F2F', color: 'white', borderRadius: '20px', padding: '4px 10px', fontSize: '13px', fontWeight: 600 }}>{formatMoeda(pessoas.reduce((s, p) => s + p.saldo, 0))}</span>}
+      />
       <div style={{ padding: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'white', borderRadius: '12px', padding: '10px 14px', marginBottom: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'white', borderRadius: '12px', padding: '10px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <span>🔍</span>
           <input value={busca} onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar pessoa..." style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px', fontFamily: 'inherit', background: 'transparent' }} />
+            placeholder="Buscar pessoa..." style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px', fontFamily: 'inherit' }} />
         </div>
 
         {carregando && <div style={{ textAlign: 'center', padding: '20px', color: '#9E9E9E' }}>Carregando...</div>}
@@ -59,7 +68,7 @@ export function Contas() {
         <div style={{ background: 'white', borderRadius: '12px', padding: '0 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           {filtrados.map((p, idx) => (
             <div key={p.id}>
-              <div onClick={() => ir('conta-detalhe', { pessoaId: p.id })} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 0', cursor: 'pointer' }}>
+              <div onClick={() => ir('conta-detalhe', { pessoaId: p.id })} style={{ display: 'flex', alignItems: 'center', padding: '12px 0', cursor: 'pointer' }}>
                 <Avatar nome={p.nome} cor={avatarCor(p.id)} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: 500 }}>{p.nome}</div>
@@ -76,29 +85,43 @@ export function Contas() {
   )
 }
 
-export function ContaDetalhe() {
-  const { params, ir } = useStore()
-  const { pessoaId } = params
+export function ContaDetalhe({ pessoaId, onBack }) {
+  const { ir, usuario } = useStore()
   const [pessoa, setPessoa] = useState(null)
   const [extrato, setExtrato] = useState([])
   const [saldo, setSaldo] = useState(0)
   const [carregando, setCarregando] = useState(true)
 
-  useEffect(() => {
-    async function carregar() {
-      const [p, ext] = await Promise.all([apiGet(`/pessoas/${pessoaId}`), apiGet(`/pessoas/${pessoaId}/extrato`)])
-      setPessoa(p); setSaldo(p.saldo || 0)
-      setExtrato(Array.isArray(ext) ? ext : [])
-      setCarregando(false)
+  async function carregar() {
+    setCarregando(true)
+    const [p, ext] = await Promise.all([
+      apiGet(`/pessoas/${pessoaId}`),
+      apiGet(`/cobracas/${pessoaId}/extrato`)
+    ])
+    setPessoa(p)
+    const ex = Array.isArray(ext) ? ext : []
+    setExtrato(ex)
+    setSaldo(ex.reduce((s, i) => s + i.valor, 0))
+    setCarregando(false)
+  }
+
+  async function handleApagarVenda(vendaId) {
+    if (!confirm('Apagar este lançamento?')) return
+    try {
+      await apiDelete(`/vendas/${vendaId}`)
+      carregar()
+    } catch (e) {
+      alert('Erro ao apagar: ' + e.message)
     }
-    carregar()
-  }, [pessoaId])
+  }
+
+  useEffect(() => { carregar() }, [pessoaId])
 
   return (
     <>
-      <TopBar titulo={pessoa?.nome || 'Carregando...'} />
+      <TopBar titulo={pessoa?.nome || 'Carregando...'} onBack={onBack} />
       <div style={{ padding: '16px', paddingBottom: '24px' }}>
-        <div style={{ background: 'white', borderRadius: '12px', padding: '14px', display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '14px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <Avatar nome={pessoa?.nome || ''} cor={avatarCor(pessoaId)} size={52} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '15px', fontWeight: 600 }}>{pessoa?.nome}</div>
@@ -121,19 +144,27 @@ export function ContaDetalhe() {
 
         <div style={{ background: 'white', borderRadius: '12px', padding: '0 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           {extrato.length === 0 && !carregando && (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: '#9E9E9E', fontSize: '14px' }}>Nenhum lancamento</div>
+            <div style={{ padding: '24px 0', textAlign: 'center', color: '#9E9E9E', fontSize: '14px' }}>Nenhum lançamento</div>
           )}
           {extrato.map((item, idx) => (
             <div key={idx}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px 0' }}>
-                <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: item.tipo === 'compra' ? '#D32F2F' : '#2E7D32', marginTop: '5px', flexShrink: 0 }} />
+                <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: item.tipo === 'compra' ? '#D32F2F' : '#2E7D32', marginTop: '4px', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '13px', color: '#1A1A1A' }}>{item.desc}</div>
-                  <div style={{ fontSize: '11px', color: '#9E9E9E', marginTop: '2px' }}>{formatData(item.data)}{item.domingoDesc ? ` - ${item.domingoDesc}` : ''}</div>
+                  <div style={{ fontSize: '11px', color: '#9E9E9E', marginTop: '2px' }}>{formatData(item.data)}{item.domingo ? ` · ${item.domingo}` : ''}</div>
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: item.valor < 0 ? '#D32F2F' : '#2E7D32' }}>
                   {item.valor < 0 ? '-' : '+'}{formatMoeda(Math.abs(item.valor))}
                 </div>
+                {item.tipo === 'compra' && item.vendaId && (
+                  <button
+                    onClick={() => handleApagarVenda(item.vendaId)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D32F2F', fontSize: '16px', padding: '0 2px', lineHeight: 1 }}
+                  >
+                    🗑️
+                  </button>
+                )}
               </div>
               {idx < extrato.length - 1 && <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />}
             </div>
@@ -144,132 +175,46 @@ export function ContaDetalhe() {
   )
 }
 
-export function Pagamento() {
-  const { params, mostrarToast, ir } = useStore()
-  const { pessoaId, saldo: saldoParam } = params
-  const [pessoa, setPessoa] = useState(null)
-  const [saldo, setSaldo] = useState(saldoParam || 0)
-  const [valor, setValor] = useState(saldoParam > 0 ? saldoParam.toFixed(2) : '')
-  const [forma, setForma] = useState('PIX')
-  const [recebidoPor, setRecebidoPor] = useState('')
+export function Pagamento({ pessoaId, saldo: saldoInicial, onBack }) {
+  const { ir } = useStore()
+  const [valor, setValor] = useState('')
   const [obs, setObs] = useState('')
   const [salvando, setSalvando] = useState(false)
-  const [mostrarSenha, setMostrarSenha] = useState(false)
-  const config = getConfig()
-  const adms = config.adms || []
 
-  useEffect(() => {
-    apiGet(`/pessoas/${pessoaId}`).then(p => {
-      setPessoa(p); setSaldo(p.saldo || 0)
-      if (!valor) setValor((p.saldo || 0).toFixed(2))
-    })
-  }, [pessoaId])
-
-  const atalhos = [saldo, 50, 30, 20, 10].filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
-  const formas = ['PIX', 'Dinheiro', 'Cartao', 'Transferencia']
-
-  const handleSalvar = () => {
-    const v = parseFloat(valor)
-    if (!v || v <= 0) { mostrarToast('Informe um valor valido!', 'erro'); return }
-    if (!recebidoPor) { mostrarToast('Selecione quem recebeu!', 'erro'); return }
-    setMostrarSenha(true)
-  }
-
-  const confirmarPagamento = async () => {
-    setMostrarSenha(false)
+  async function handleSalvar() {
+    if (!valor || isNaN(parseFloat(valor))) return alert('Valor inválido')
     setSalvando(true)
-    const v = parseFloat(valor)
-    const observacaoFinal = `Recebido por: ${recebidoPor}${obs ? ' | ' + obs : ''}`
-    await apiPost('/pagamentos', { pessoaId, valor: v, forma, observacao: observacaoFinal })
-    mostrarToast(`Pagamento de ${formatMoeda(v)} registrado!`)
-    ir('contas')
-    setSalvando(false)
+    try {
+      await apiPost('/pagamentos', { pessoaId, valor: parseFloat(valor), obs })
+      ir('conta-detalhe', { pessoaId })
+    } catch (e) {
+      alert('Erro: ' + e.message)
+      setSalvando(false)
+    }
   }
 
   return (
     <>
-      {mostrarSenha && (
-        <SenhaModal
-          titulo="Confirmar pagamento"
-          descricao={`Registrar ${formatMoeda(parseFloat(valor))} para ${pessoa?.nome}`}
-          onConfirmar={confirmarPagamento}
-          onCancelar={() => setMostrarSenha(false)}
-        />
-      )}
-      <TopBar titulo="Receber Pagamento" />
+      <TopBar titulo="Registrar Pagamento" onBack={onBack} />
       <div style={{ padding: '16px' }}>
-
-        {/* Pessoa */}
-        <div style={{ background: 'white', borderRadius: '12px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <Avatar nome={pessoa?.nome || ''} cor={avatarCor(pessoaId)} />
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>{pessoa?.nome}</div>
-            <div style={{ fontSize: '13px', color: saldo > 0 ? '#D32F2F' : '#2E7D32', fontWeight: 500 }}>
-              {saldo > 0 ? `Deve ${formatMoeda(saldo)}` : 'Sem saldo devedor'}
-            </div>
-          </div>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+          <div style={{ fontSize: '13px', color: '#9E9E9E', marginBottom: '4px' }}>Saldo devedor</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, color: '#D32F2F' }}>{formatMoeda(saldoInicial)}</div>
         </div>
-
-        {/* Valor */}
-        <SectionTitle>Valor recebido</SectionTitle>
-        <div style={{ position: 'relative', marginBottom: '10px' }}>
-          <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#9E9E9E', fontSize: '16px' }}>R$</span>
+        <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+          <div style={{ fontSize: '13px', color: '#9E9E9E', marginBottom: '8px' }}>Valor recebido (R$)</div>
           <input type="number" value={valor} onChange={e => setValor(e.target.value)}
-            placeholder="0,00" style={{ width: '100%', padding: '14px 14px 14px 40px', border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: '10px', fontSize: '22px', fontWeight: 700, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', color: '#2E7D32' }} />
+            placeholder="0,00" style={{ width: '100%', border: 'none', outline: 'none', fontSize: '24px', fontWeight: 600, color: '#1A1A1A', fontFamily: 'inherit' }} />
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          {atalhos.map(v => (
-            <button key={v} onClick={() => setValor(v.toFixed(2))} style={{
-              background: parseFloat(valor) === v ? '#2E7D32' : '#E8F5E9',
-              color: parseFloat(valor) === v ? 'white' : '#2E7D32',
-              border: 'none', borderRadius: '20px', padding: '6px 14px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-            }}>{formatMoeda(v)}</button>
-          ))}
+        <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
+          <div style={{ fontSize: '13px', color: '#9E9E9E', marginBottom: '8px' }}>Observação (opcional)</div>
+          <input value={obs} onChange={e => setObs(e.target.value)}
+            placeholder="Ex: Pix, dinheiro..." style={{ width: '100%', border: 'none', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }} />
         </div>
-
-        {/* Forma de pagamento */}
-        <SectionTitle>Forma de pagamento</SectionTitle>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          {formas.map(f => (
-            <button key={f} onClick={() => setForma(f)} style={{
-              background: forma === f ? '#2E7D32' : '#E8F5E9',
-              color: forma === f ? 'white' : '#2E7D32',
-              border: 'none', borderRadius: '20px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-            }}>{f}</button>
-          ))}
-        </div>
-
-        {/* Recebido por */}
-        <SectionTitle>Recebido por</SectionTitle>
-        {adms.length === 0 ? (
-          <div style={{ background: '#FFF8E1', border: '1px solid #FBC02D', borderRadius: '10px', padding: '10px 14px', fontSize: '13px', color: '#F57F17', marginBottom: '16px' }}>
-            Nenhum ADM cadastrado. Va em Configuracoes > ADM para cadastrar.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-            {adms.map(adm => (
-              <button key={adm} onClick={() => setRecebidoPor(adm)} style={{
-                background: recebidoPor === adm ? '#2E7D32' : '#E8F5E9',
-                color: recebidoPor === adm ? 'white' : '#2E7D32',
-                border: 'none', borderRadius: '20px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit'
-              }}>{adm}</button>
-            ))}
-          </div>
-        )}
-
-        {/* Observacao */}
-        <textarea value={obs} onChange={e => setObs(e.target.value)}
-          placeholder="Observacao (opcional)" rows={2}
-          style={{ width: '100%', padding: '12px 14px', border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: '10px', fontSize: '14px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', resize: 'none', marginBottom: '16px' }} />
-
-        <BtnPrimario onClick={handleSalvar} disabled={salvando || !valor || !recebidoPor}>
-          {salvando ? 'Registrando...' : 'Confirmar Pagamento'}
+        <BtnPrimario onClick={handleSalvar} disabled={salvando}>
+          {salvando ? 'Salvando...' : 'Confirmar Pagamento'}
         </BtnPrimario>
-        <div style={{ textAlign: 'center', fontSize: '12px', color: '#9E9E9E', marginTop: '8px' }}>
-          Requer confirmacao de senha
-        </div>
       </div>
     </>
   )
 }
-
