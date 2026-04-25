@@ -7,17 +7,21 @@ import { getConfig } from './Configuracoes'
 
 const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api'
 function getToken() { return localStorage.getItem('cantinapp_token') }
+
 async function apiGet(path) {
   const res = await fetch(API + path, { headers: { 'Authorization': `Bearer ${getToken()}` } })
   return res.json()
 }
+
 async function apiPost(path, body) {
   const res = await fetch(API + path, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
     body: JSON.stringify(body)
   })
   return res.json()
 }
+
 async function apiDelete(path) {
   const res = await fetch(API + path, {
     method: 'DELETE',
@@ -26,6 +30,7 @@ async function apiDelete(path) {
   return res.json()
 }
 
+// ─── LISTA DE DEVEDORES ───────────────────────────────────────────────────────
 export function Contas({ onBack }) {
   const { ir } = useStore()
   const [pessoas, setPessoas] = useState([])
@@ -36,7 +41,7 @@ export function Contas({ onBack }) {
     apiGet('/relatorios/devedores').then(d => {
       setPessoas(Array.isArray(d) ? d : [])
       setCarregando(false)
-    })
+    }).catch(() => setCarregando(false))
   }, [])
 
   const filtrados = pessoas.filter(p =>
@@ -46,16 +51,25 @@ export function Contas({ onBack }) {
   return (
     <>
       <TopBar titulo="Contas em Aberto" onBack={onBack}
-        direita={<span style={{ background: '#D32F2F', color: 'white', borderRadius: '20px', padding: '4px 10px', fontSize: '13px', fontWeight: 600 }}>{formatMoeda(pessoas.reduce((s, p) => s + p.saldo, 0))}</span>}
+        direita={
+          <span style={{ background: '#D32F2F', color: 'white', borderRadius: '20px', padding: '4px 10px', fontSize: '13px', fontWeight: 600 }}>
+            {formatMoeda(pessoas.reduce((s, p) => s + p.saldo, 0))}
+          </span>
+        }
       />
       <div style={{ padding: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'white', borderRadius: '12px', padding: '10px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <span>🔍</span>
-          <input value={busca} onChange={e => setBusca(e.target.value)}
-            placeholder="Buscar pessoa..." style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px', fontFamily: 'inherit' }} />
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar pessoa..."
+            style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px', fontFamily: 'inherit' }}
+          />
         </div>
 
         {carregando && <div style={{ textAlign: 'center', padding: '20px', color: '#9E9E9E' }}>Carregando...</div>}
+
         <SectionTitle>{filtrados.length} devedor{filtrados.length !== 1 ? 'es' : ''}</SectionTitle>
 
         {!carregando && filtrados.length === 0 && (
@@ -68,13 +82,18 @@ export function Contas({ onBack }) {
         <div style={{ background: 'white', borderRadius: '12px', padding: '0 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           {filtrados.map((p, idx) => (
             <div key={p.id}>
-              <div onClick={() => ir('conta-detalhe', { pessoaId: p.id })} style={{ display: 'flex', alignItems: 'center', padding: '12px 0', cursor: 'pointer' }}>
+              <div
+                onClick={() => ir('conta-detalhe', { pessoaId: p.id })}
+                style={{ display: 'flex', alignItems: 'center', padding: '12px 0', cursor: 'pointer' }}
+              >
                 <Avatar nome={p.nome} cor={avatarCor(p.id)} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: 500 }}>{p.nome}</div>
                   <div style={{ fontSize: '12px', color: '#9E9E9E', marginTop: '2px' }}>Toque para extrato completo</div>
                 </div>
-                <span style={{ background: '#FFEBEE', color: '#D32F2F', borderRadius: '20px', padding: '4px 10px', fontSize: '13px', fontWeight: 600 }}>{formatMoeda(p.saldo)}</span>
+                <span style={{ background: '#FFEBEE', color: '#D32F2F', borderRadius: '20px', padding: '4px 10px', fontSize: '13px', fontWeight: 600 }}>
+                  {formatMoeda(p.saldo)}
+                </span>
               </div>
               {idx < filtrados.length - 1 && <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />}
             </div>
@@ -85,6 +104,7 @@ export function Contas({ onBack }) {
   )
 }
 
+// ─── EXTRATO DO DEVEDOR ───────────────────────────────────────────────────────
 export function ContaDetalhe({ pessoaId, onBack }) {
   const { ir, usuario } = useStore()
   const [pessoa, setPessoa] = useState(null)
@@ -94,22 +114,24 @@ export function ContaDetalhe({ pessoaId, onBack }) {
 
   async function carregar() {
     setCarregando(true)
-    const [p, ext] = await Promise.all([
-      apiGet(`/pessoas/${pessoaId}`),
-      apiGet(`/cobracas/${pessoaId}/extrato`)
-    ])
-    setPessoa(p)
-    const ex = Array.isArray(ext) ? ext : []
-    setExtrato(ex)
-    setSaldo(ex.reduce((s, i) => s + i.valor, 0))
-    setCarregando(false)
+    try {
+      const data = await apiGet(`/cobracas/${pessoaId}`)
+      setPessoa(data.pessoa || null)
+      const ex = Array.isArray(data.extrato) ? data.extrato : []
+      setExtrato(ex)
+      setSaldo(data.saldo || ex.reduce((s, i) => s + i.valor, 0))
+    } catch (e) {
+      console.error('Erro ao carregar extrato:', e)
+    } finally {
+      setCarregando(false)
+    }
   }
 
   async function handleApagarVenda(vendaId) {
     if (!confirm('Apagar este lançamento?')) return
     try {
       await apiDelete(`/vendas/${vendaId}`)
-      carregar()
+      await carregar()
     } catch (e) {
       alert('Erro ao apagar: ' + e.message)
     }
@@ -129,7 +151,9 @@ export function ContaDetalhe({ pessoaId, onBack }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: '11px', color: '#9E9E9E' }}>Saldo</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: saldo > 0 ? '#D32F2F' : '#2E7D32' }}>{formatMoeda(saldo)}</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: saldo > 0 ? '#D32F2F' : '#2E7D32' }}>
+              {formatMoeda(saldo)}
+            </div>
           </div>
         </div>
 
@@ -144,7 +168,9 @@ export function ContaDetalhe({ pessoaId, onBack }) {
 
         <div style={{ background: 'white', borderRadius: '12px', padding: '0 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           {extrato.length === 0 && !carregando && (
-            <div style={{ padding: '24px 0', textAlign: 'center', color: '#9E9E9E', fontSize: '14px' }}>Nenhum lançamento</div>
+            <div style={{ padding: '24px 0', textAlign: 'center', color: '#9E9E9E', fontSize: '14px' }}>
+              Nenhum lançamento
+            </div>
           )}
           {extrato.map((item, idx) => (
             <div key={idx}>
@@ -152,14 +178,16 @@ export function ContaDetalhe({ pessoaId, onBack }) {
                 <div style={{ width: '9px', height: '9px', borderRadius: '50%', background: item.tipo === 'compra' ? '#D32F2F' : '#2E7D32', marginTop: '4px', flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '13px', color: '#1A1A1A' }}>{item.desc}</div>
-                  <div style={{ fontSize: '11px', color: '#9E9E9E', marginTop: '2px' }}>{formatData(item.data)}{item.domingo ? ` · ${item.domingo}` : ''}</div>
+                  <div style={{ fontSize: '11px', color: '#9E9E9E', marginTop: '2px' }}>
+                    {formatData(item.data)}{item.domingo ? ` · ${item.domingo}` : ''}
+                  </div>
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: item.valor < 0 ? '#D32F2F' : '#2E7D32' }}>
                   {item.valor < 0 ? '-' : '+'}{formatMoeda(Math.abs(item.valor))}
                 </div>
-                {item.tipo === 'compra' && item.vendaId && (
+                {item.tipo === 'compra' && (item.vendaId || item.id) && (
                   <button
-                    onClick={() => handleApagarVenda(item.vendaId)}
+                    onClick={() => handleApagarVenda(item.vendaId || item.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#D32F2F', fontSize: '16px', padding: '0 2px', lineHeight: 1 }}
                   >
                     🗑️
@@ -175,6 +203,7 @@ export function ContaDetalhe({ pessoaId, onBack }) {
   )
 }
 
+// ─── REGISTRAR PAGAMENTO ──────────────────────────────────────────────────────
 export function Pagamento({ pessoaId, saldo: saldoInicial, onBack }) {
   const { ir } = useStore()
   const [valor, setValor] = useState('')
@@ -203,13 +232,22 @@ export function Pagamento({ pessoaId, saldo: saldoInicial, onBack }) {
         </div>
         <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', color: '#9E9E9E', marginBottom: '8px' }}>Valor recebido (R$)</div>
-          <input type="number" value={valor} onChange={e => setValor(e.target.value)}
-            placeholder="0,00" style={{ width: '100%', border: 'none', outline: 'none', fontSize: '24px', fontWeight: 600, color: '#1A1A1A', fontFamily: 'inherit' }} />
+          <input
+            type="number"
+            value={valor}
+            onChange={e => setValor(e.target.value)}
+            placeholder="0,00"
+            style={{ width: '100%', border: 'none', outline: 'none', fontSize: '24px', fontWeight: 600, color: '#1A1A1A', fontFamily: 'inherit' }}
+          />
         </div>
         <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', color: '#9E9E9E', marginBottom: '8px' }}>Observação (opcional)</div>
-          <input value={obs} onChange={e => setObs(e.target.value)}
-            placeholder="Ex: Pix, dinheiro..." style={{ width: '100%', border: 'none', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }} />
+          <input
+            value={obs}
+            onChange={e => setObs(e.target.value)}
+            placeholder="Ex: Pix, dinheiro..."
+            style={{ width: '100%', border: 'none', outline: 'none', fontSize: '14px', fontFamily: 'inherit' }}
+          />
         </div>
         <BtnPrimario onClick={handleSalvar} disabled={salvando}>
           {salvando ? 'Salvando...' : 'Confirmar Pagamento'}
