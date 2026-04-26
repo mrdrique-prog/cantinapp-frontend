@@ -1,7 +1,7 @@
 // src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
-import { Avatar, avatarCor, formatMoeda } from '../components/UI'
+import { formatMoeda } from '../components/UI'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -31,7 +31,6 @@ export default function Dashboard() {
     { label: 'Nova Venda',        icon: '🛒', bg: '#E8F5E9', tela: 'nova-venda' },
     { label: 'Cantina do Dia',    icon: '📋', bg: '#E3F2FD', tela: 'domingos' },
     { label: 'Contas em Aberto',  icon: '💳', bg: '#FFEBEE', tela: 'contas' },
-    { label: 'Receber Pgto.',     icon: '💰', bg: '#E8F5E9', tela: 'contas' },
     { label: 'Cobranca WhatsApp', icon: '📱', bg: '#FFF8E1', tela: 'cobranca' },
     { label: 'Relatorios',        icon: '📊', bg: '#F3E5F5', tela: 'relatorios' },
     { label: 'Pessoas',           icon: '👥', bg: '#E0F2F1', tela: 'pessoas' },
@@ -59,17 +58,20 @@ export default function Dashboard() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '16px', marginTop: '-14px' }}>
         {btns.map(b => (
-          <button key={b.tela + b.label} onClick={() => ir(b.tela)} style={{
+          <button key={b.label} onClick={() => ir(b.tela)} style={{
             background: 'white', border: 'none', borderRadius: '14px', padding: '18px 12px',
             cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
           }}>
-            <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: b.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>{b.icon}</div>
-            <span style={{ fontSize: '13px', fontWeight: 500, color: '#1A1A1A', textAlign: 'center', lineHeight: 1.3 }}>{b.label}</span>
+            <div style={{ width: '46px', height: '46px', borderRadius: '13px', background: b.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px' }}>
+              {b.icon}
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: 500, color: '#1A1A1A', textAlign: 'center', lineHeight: 1.3 }}>
+              {b.label}
+            </span>
           </button>
         ))}
       </div>
     </div>
   )
 }
-
