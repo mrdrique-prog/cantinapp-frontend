@@ -1,8 +1,7 @@
 // src/components/SenhaModal.jsx
-// Modal de confirmação de senha para ações sensíveis
 import { useState } from 'react'
 
-const API = 'http://localhost:3001/api'
+const API = (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api'
 function getToken() { return localStorage.getItem('cantinapp_token') }
 
 export function SenhaModal({ titulo, descricao, onConfirmar, onCancelar }) {
@@ -21,7 +20,6 @@ export function SenhaModal({ titulo, descricao, onConfirmar, onCancelar }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
         body: JSON.stringify({ senha })
       })
-      const data = await res.json()
       if (!res.ok) { setErro('Senha incorreta'); setCarregando(false); return }
       onConfirmar()
     } catch { setErro('Erro ao verificar senha') }
@@ -39,7 +37,6 @@ export function SenhaModal({ titulo, descricao, onConfirmar, onCancelar }) {
           <div style={{ fontSize: '17px', fontWeight: 700, color: '#1A1A1A' }}>{titulo}</div>
           {descricao && <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{descricao}</div>}
         </div>
-
         <div style={{ position: 'relative', marginBottom: '8px' }}>
           <input
             type={visivel ? 'text' : 'password'}
@@ -60,21 +57,4 @@ export function SenhaModal({ titulo, descricao, onConfirmar, onCancelar }) {
             background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9E9E9E'
           }}>{visivel ? '🙈' : '👁'}</button>
         </div>
-
-        {erro && <div style={{ color: '#D32F2F', fontSize: '12px', marginBottom: '12px', padding: '0 2px' }}>⚠️ {erro}</div>}
-
-        <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-          <button onClick={onCancelar} style={{
-            flex: 1, background: '#f5f5f5', color: '#666', border: 'none',
-            borderRadius: '10px', padding: '13px', fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500
-          }}>Cancelar</button>
-          <button onClick={handleConfirmar} disabled={carregando} style={{
-            flex: 2, background: '#2E7D32', color: 'white', border: 'none',
-            borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700,
-            cursor: carregando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: carregando ? 0.8 : 1
-          }}>{carregando ? 'Verificando...' : 'Confirmar'}</button>
-        </div>
-      </div>
-    </div>
-  )
-}
+        {erro && <div style={{ color: '#D32F2F', fontSize: '12px', marginBottom: '12px', padding: '0 2px' }}>⚠️ {erro}</di
