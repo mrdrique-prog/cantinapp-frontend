@@ -57,4 +57,19 @@ export function SenhaModal({ titulo, descricao, onConfirmar, onCancelar }) {
             background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9E9E9E'
           }}>{visivel ? '🙈' : '👁'}</button>
         </div>
-        {erro && <div style={{ color: '#D32F2F', fontSize: '12px', marginBottom: '12px', padding: '0 2px' }}>⚠️ {erro}</di
+        {erro && <div style={{ color: '#D32F2F', fontSize: '12px', marginBottom: '12px', padding: '0 2px' }}>⚠️ {erro}</div>}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+          <button onClick={onCancelar} style={{
+            flex: 1, background: '#f5f5f5', color: '#666', border: 'none',
+            borderRadius: '10px', padding: '13px', fontSize: '14px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500
+          }}>Cancelar</button>
+          <button onClick={handleConfirmar} disabled={carregando} style={{
+            flex: 2, background: '#2E7D32', color: 'white', border: 'none',
+            borderRadius: '10px', padding: '13px', fontSize: '14px', fontWeight: 700,
+            cursor: carregando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: carregando ? 0.8 : 1
+          }}>{carregando ? 'Verificando...' : 'Confirmar'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
